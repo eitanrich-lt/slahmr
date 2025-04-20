@@ -4,26 +4,26 @@ optim:
     robust_tuning_const: 4.6851
     joints2d_sigma: 100.0
     lr: 1.0
-    lbfgs_max_iter: 20
-    save_every: 20
+    lbfgs_max_iter: 10
+    save_every: 10
     vis_every: -1
-    max_chunk_steps: 20
+    max_chunk_steps: 10
     save_meshes: False
 
   root:
-    num_iters: 30
+    num_iters: 10
 
   smpl:
     num_iters: 0
 
   smooth:
     opt_scale: False
-    num_iters: 60
+    num_iters: 20
 
   motion_chunks:
     chunk_size: 10
-    init_steps: 20
-    chunk_steps: 20
+    init_steps: 10
+    chunk_steps: 10
     opt_cams: True
 
   loss_weights:

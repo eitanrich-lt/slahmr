@@ -1,28 +1,29 @@
 import os
+from glob import glob
 from datetime import datetime
 import subprocess
 import multiprocessing as mp
 from concurrent import futures
-
 import argparse
 
 """
-Helper script for launching batch jobs if without job manager/slurm
+Helper script for launching batch jobs without a job manager/slurm.
 
-Specify which GPUs are available to use with (--gpus) flag
-Specify sequences to run either via a job file (-f `job_file`)
+Specify which GPUs are available to use with the (--gpus) flag.
+Specify sequences to run either via a job file (-f `job_file`):
 
     python launch.py --gpus 0 1 -f job_specs/davis.txt --opt --vis
-    
-or manually with sequence names (--seqs)
 
-    python launch.py --gpus 0 1 -f parkour boxing-fisheye --opt --vis
+or manually with sequence names (--seqs):
 
-and add additional arguments shared by all jobs with (-s) flag
+    python launch.py --gpus 0 1 --seqs parkour boxing-fisheye --opt --vis
 
-    python launch.py --gpus 0 1 -f parkour boxing-fisheye --opt --vis -s exp_name=experiment_1
+Add additional arguments shared by all jobs with the (-s) flag:
 
+    python launch.py --gpus 0 1 --seqs parkour boxing-fisheye --opt --vis -s exp_name=experiment_1
 """
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def run(gpus, log_file, seq, run_opt, run_vis, overwrite=False, argstr=""):
@@ -36,6 +37,7 @@ def run(gpus, log_file, seq, run_opt, run_vis, overwrite=False, argstr=""):
     )
     if seq is not None:
         cmd = f"{cmd} data.seq={seq}"
+
     if overwrite:
         cmd = f"{cmd} overwrite=True"
 
@@ -44,22 +46,33 @@ def run(gpus, log_file, seq, run_opt, run_vis, overwrite=False, argstr=""):
     print(cmd)
     subprocess.call(cmd, shell=True)
 
-
 def main(args):
     seqs = args.seqs
     if seqs is None:
         seqs = [None]
     if args.job_file is not None:
         with open(args.job_file, "r") as f:
-            seqs = [args.strip() for args in f.readlines()]
-    print(seqs)
+            seqs = [line.strip() for line in f if line.strip()]
+    print("Sequences to process:", seqs)
 
     log_dir = "_launch_logs"
     os.makedirs(log_dir, exist_ok=True)
     job_name = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+    # Filter out sequences that have already been processed
+    filtered_seqs = []
+    for seq in seqs:
+        completed_matches = glob(os.path.join(PROJECT_ROOT, "outputs", "logs", "completed", f"{seq}-*"))
+
+        if completed_matches and not args.overwrite:
+            print(f"Skipping {seq}: found completed match: {os.path.basename(completed_matches[0])}")
+            continue
+        filtered_seqs.append(seq)
+
+    print("Sequences to run:", filtered_seqs)
+
     with futures.ProcessPoolExecutor(max_workers=len(args.gpus)) as exe:
-        for i, seq in enumerate(seqs):
+        for i, seq in enumerate(filtered_seqs):
             log_file = f"{log_dir}/{job_name}_{i:03d}.log"
             exe.submit(
                 run,
@@ -72,10 +85,9 @@ def main(args):
                 args.argstr,
             )
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gpus", nargs="*", default=[8])
+    parser.add_argument("--gpus", nargs="*", default=[8], type=int)
     parser.add_argument("-f", "--job_file", default=None)
     parser.add_argument("--seqs", nargs="*", default=None)
     parser.add_argument("--opt", action="store_true")

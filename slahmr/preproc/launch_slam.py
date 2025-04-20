@@ -191,6 +191,8 @@ if __name__ == "__main__":
         "--use_intrins", action="store_true", help="use GT intrinsics if available"
     )
     parser.add_argument("-y", "--overwrite", action="store_true")
+    parser.add_argument('--img_name', type=str, default='images', help='name of image folder under root')
+
     args = parser.parse_args()
     args = update_args(args)
 
