@@ -3,19 +3,20 @@ set -e
 
 export CONDA_ENV_NAME=slahmr
 
+# Create and activate the conda environment
 conda create -n $CONDA_ENV_NAME python=3.10 -y
-
 conda activate $CONDA_ENV_NAME
 
-# install pytorch using pip, update with appropriate cuda drivers if necessary
-pip install torch==1.13.0 torchvision==0.14.0 --index-url https://download.pytorch.org/whl/cu117
-# uncomment if pip installation isn't working
-# conda install pytorch=1.13.0 torchvision=0.14.0 pytorch-cuda=11.7 -c pytorch -c nvidia -y
+# Install PyTorch 2.4.0 with CUDA 12.4 support
+pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu124
 
-# install pytorch scatter using pip, update with appropriate cuda drivers if necessary
-pip install torch-scatter -f https://data.pyg.org/whl/torch-1.13.0+cu117.html
-# uncomment if pip installation isn't working
-# conda install pytorch-scatter -c pyg -y
+# Set environment variables for CUDA
+export CUDA_HOME=/usr/local/cuda
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
+pip install torch-scatter -f https://data.pyg.org/whl/torch-2.4.0+cu124.html
+
 
 # install PHALP
 pip install phalp[all]@git+https://github.com/brjathu/PHALP.git
@@ -31,5 +32,6 @@ pip install -v -e third-party/ViTPose
 
 # install DROID-SLAM
 cd third-party/DROID-SLAM
+export TORCH_CUDA_ARCH_LIST="9.0"
 python setup.py install
 cd ../..
